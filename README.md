@@ -18,7 +18,7 @@ Each client then receives exactly its own rows, in its own requested format.
 
 ## Who it is for (and who it is not for)
 - **Gains start around 1,000 point reads per second** for a single query shape. Below that, the adaptive window rarely finds a partner, so requests go straight through with no added wait.
-- **Uniform reads of data larger than memory are capped at roughly 65–75% DB CPU savings.** Page access costs the same whether a key is fetched alone or in a batch. Hot or skewed (Zipf) traffic does better, at 80–90%.
+- **Uniform keys save less than skewed ones.** In our benchmark (a 172 MB table, larger than the 64 MB `shared_buffers`, inside a 256 MB limit) uniform keys saved 70–84% DB CPU and skewed (Zipf) keys 79–91%. Page access costs the same whether a key is fetched alone or in a batch, so expect lower savings when the working set does not fit in memory.
 - **You pay latency:** p50 rises by about the window, +1.8 ms with a 2 ms window and about +3.4 ms with 5 ms. Do not use it for latency-critical single reads.
 - **The proxy itself costs CPU:** about 41–49 µs per request at 5k/s, versus about 27–30 µs for PgBouncer. The two reach parity around 20k/s. You are moving work off the database, which scales vertically, onto a stateless tier.
 
@@ -117,6 +117,8 @@ A pre-launch code review then found four more, all fixed and covered by `tests/r
 - **Protocol coverage.** Transaction-template coalescing supports the extended protocol only (as PostgREST uses). Simple-protocol transactions pass through.
 - **Server connections per session configuration.** Each distinct combination of user, database, startup options and session-level settings (for example one `search_path` per tenant) gets its own engine with `lanes` server connections. `max_engines` bounds this (default 32) and idle engines are closed after `engine_idle_timeout`; variants beyond the limit are served by passthrough. With many tenants active at once, most of them will not be coalesced.
 - **Metrics endpoint is unauthenticated.** `/metrics`, `/stats` and `POST /admin/reload` have no authentication. Bind `metrics_addr` to loopback or a private interface.
+- **Server-side TLS default.** `server_tls_sslmode` defaults to `prefer`, which does not verify the server certificate. Use `verify-full` for anything that is not on localhost.
+- **Schema changes.** Query templates are cached for `template_ttl` (5 minutes by default). Behaviour right after a schema change on a coalesced table (for example `ADD COLUMN` under `SELECT *`) has not been tested.
 - **Limited testing.** One machine, synthetic schemas, and no third-party security review. Treat it as beta.
 
 ## Production features
