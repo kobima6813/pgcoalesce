@@ -1,0 +1,25 @@
+{
+ "R1_encodings": {
+  "LATIN1": "FAIL: 75 of 100 answers differ from direct",
+  "SJIS": "ok",
+  "invalid_bytes": "FAIL: [[], [('row', [b'ascii'])]] vs direct [[('err', '22021')], [('row', [b'ascii'])]]"
+ },
+ "R2_backslash_literal": "FAIL: proxy [[('two backslashes',)], [('two backslashes',)], [('two backslashes',)], [('two backslashes',)], [('two backslashes',)], [('two backslashes',)]], direct [[('one backslash',)], [('one backslash',)], [('one backslash',)], [('two backslashes',)], [('two backslashes',)], [('two backslashes',)]]",
+ "R3_engine_churn": {
+  "result": "FAIL",
+  "wrong_answers": 0,
+  "server_conns_base": 100,
+  "peak_growth": 197,
+  "allowed_growth": 44,
+  "left_after_idle": 196
+ },
+ "R4_close_in_group": {
+  "close_portal_then_execute": "FAIL: proxy 'connection lost (EOFError)', direct ['1', '2', '3', ('err', '34000')]",
+  "close_stmt_then_bind": "FAIL: proxy 'connection lost (EOFError)', direct ['1', '3', ('err', '26000')]",
+  "close_stmt_then_describe": "FAIL: proxy 'connection lost (BrokenPipeError)', direct ['1', '3', ('err', '26000')]",
+  "bind_closed_stmt_next_group": "FAIL: proxy 'connection lost (BrokenPipeError)', direct [('err', '26000')]",
+  "close_then_reparse_ok": "FAIL: proxy 'connection lost (BrokenPipeError)', direct ['1', '3', '1', '2', ('row', [b'ascii']), 'C']",
+  "proxy_still_running": "FAIL: proxy process is gone"
+ },
+ "failed_checks": 10
+}

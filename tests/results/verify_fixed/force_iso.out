@@ -1,0 +1,42 @@
+{"label": "iso_force", "rc": 0, "secs": 61.2, "pgcoalesce_batch_size": {"batches": 35225, "gt1": 27841}, "pgcoalesce_batch_unique_keys": {"batches": 35225, "gt1": 23225}, "pgcoalesce_tx_batch_size": {"batches": 0, "gt1": 0}, "stats_batch_items": 128483, "stats_batches": 35225, "stats_tx_batches": 0, "stats_tx_batch_items": 0, "stats_tx_coalesced": 0, "stats_tx_fallbacks": 0, "stats_verify_mismatch": 5382, "stats_client_panics": 0, "stats_engines": 16, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+{
+ "ops": 296005,
+ "mismatches": 0,
+ "examples": [],
+ "volatile_calls_expected": 1000,
+ "volatile_calls_seen": 1000,
+ "proxy_delta": {
+  "coalesced_reqs": 128483,
+  "batches": 35225,
+  "unique": 76874,
+  "verifies": 28507,
+  "verify_mismatch": 5382,
+  "forward_groups": 178394,
+  "tmpl_ok": 26,
+  "tmpl_no": 36
+ },
+ "personas": {
+  "O1_opt_tz": 8755,
+  "A0_plain": 62299,
+  "B1_tenant2": 35381,
+  "A2_tenant2": 13938,
+  "M0_md5": 8421,
+  "T_toggle0": 4098,
+  "O0_options": 8701,
+  "B0_plain": 8536,
+  "A2_tenant1": 13930,
+  "A7_fn_tz": 34163,
+  "A3_setrole_b": 24358,
+  "A1_searchpath": 8845,
+  "T_toggle1": 4084,
+  "A4_formats": 8422,
+  "A6_fn_path": 8873,
+  "A5_temp": 34485,
+  "A8_comment_set": 8716
+ },
+ "secs": 61.0
+}
+
+--- stderr tail ---

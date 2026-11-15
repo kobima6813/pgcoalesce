@@ -1,0 +1,58 @@
+{
+ "seed": 22,
+ "diff": {
+  "ops": 99866,
+  "mismatch": 0,
+  "errors_same": 0,
+  "by_mode": {
+   "psycopg-binary": 19700,
+   "psycopg-text": 19754,
+   "psycopg-simple-literal": 19852,
+   "asyncpg-binary-named": 19900,
+   "psycopg-pipeline": 20660
+  }
+ },
+ "txn": {
+  "ryw_ok": 5468,
+  "ryw_fail": 0,
+  "txn_own_write_ok": 5468,
+  "txn_own_write_fail": 0,
+  "rr_snapshot_ok": 5468,
+  "rr_snapshot_fail": 0,
+  "taint_ok": 2,
+  "taint_fail": 0
+ },
+ "proxy_delta": {
+  "auth_fail": 0,
+  "batch_items": 59398,
+  "batches": 59377,
+  "cancel_local": 0,
+  "cancels": 0,
+  "clients": 0,
+  "coalesced_reqs": 59398,
+  "engine_switches": 1,
+  "fallbacks": 0,
+  "forward_groups": 121694,
+  "forward_queries": 30795,
+  "local_groups": 49010,
+  "rotations": 0,
+  "server_dials": 0,
+  "singles": 59361,
+  "taints": 0,
+  "tmpl_no": 0,
+  "tmpl_ok": 0,
+  "tx_batch_items": 0,
+  "tx_batches": 0,
+  "tx_begins": 0,
+  "tx_coalesced": 0,
+  "tx_commits": 0,
+  "tx_fallbacks": 0,
+  "tx_watch_mismatch": 0,
+  "unique": 59398,
+  "verifies": 29686,
+  "verify_mismatch": 1,
+  "avg_batch": 1.0,
+  "multi_key_batches": 16
+ },
+ "mismatch_examples": []
+}

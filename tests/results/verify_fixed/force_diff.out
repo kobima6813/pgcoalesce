@@ -1,0 +1,68 @@
+{"label": "diff_force", "rc": 0, "secs": 60.6, "pgcoalesce_batch_size": {"batches": 30300, "gt1": 9871}, "pgcoalesce_batch_unique_keys": {"batches": 30300, "gt1": 9805}, "pgcoalesce_tx_batch_size": {"batches": 0, "gt1": 0}, "stats_batch_items": 50158, "stats_batches": 30300, "stats_tx_batches": 0, "stats_tx_batch_items": 0, "stats_tx_coalesced": 0, "stats_tx_fallbacks": 0, "stats_verify_mismatch": 1, "stats_client_panics": 0, "stats_engines": 4, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+{
+ "seed": 32,
+ "diff": {
+  "ops": 89759,
+  "mismatch": 0,
+  "errors_same": 0,
+  "by_mode": {
+   "asyncpg-binary-named": 16067,
+   "psycopg-text": 15448,
+   "psycopg-pipeline": 26411,
+   "psycopg-simple-literal": 16305,
+   "psycopg-binary": 15528
+  }
+ },
+ "txn": {
+  "ryw_ok": 5600,
+  "ryw_fail": 0,
+  "txn_own_write_ok": 5600,
+  "txn_own_write_fail": 0,
+  "rr_snapshot_ok": 5600,
+  "rr_snapshot_fail": 0,
+  "taint_ok": 2,
+  "taint_fail": 0
+ },
+ "proxy_delta": {
+  "auth_fail": 0,
+  "batch_items": 50158,
+  "batches": 30300,
+  "cancel_local": 0,
+  "cancels": 0,
+  "client_panics": 0,
+  "clients": 0,
+  "coalesced_reqs": 50158,
+  "engine_cap_hits": 0,
+  "engine_switches": 1,
+  "engines": 4,
+  "engines_closed_idle": 0,
+  "fallbacks": 0,
+  "forward_groups": 127989,
+  "forward_queries": 29670,
+  "local_groups": 41664,
+  "rotations": 0,
+  "server_dials": 16,
+  "singles": 20495,
+  "taints": 0,
+  "tmpl_no": 32,
+  "tmpl_ok": 58,
+  "tx_batch_items": 0,
+  "tx_batches": 0,
+  "tx_begins": 0,
+  "tx_bypass": 0,
+  "tx_coalesced": 0,
+  "tx_commits": 0,
+  "tx_fallbacks": 0,
+  "tx_watch_mismatch": 0,
+  "unique": 50057,
+  "verifies": 26211,
+  "verify_mismatch": 1,
+  "avg_batch": 1.66,
+  "multi_key_batches": 9805
+ },
+ "mismatch_examples": []
+}
+
+--- stderr tail ---

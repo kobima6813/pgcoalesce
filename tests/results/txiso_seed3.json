@@ -1,0 +1,21 @@
+{
+ "examples": null,
+ "mismatches": 0,
+ "per_persona": {
+  "anon": 1732,
+  "userA": 1936,
+  "userA_badkey": 1811,
+  "userA_otherclaim": 2388,
+  "userA_sessClaims": 1898,
+  "userA_sessHeaders": 1636,
+  "userA_setlocalrole": 3122,
+  "userA_tworeads": 1452,
+  "userB": 2275,
+  "userB_hdrs": 2491,
+  "userB_rw": 2371,
+  "userB_savepoint": 3228,
+  "userB_sessGUC": 7097,
+  "userB_sessStatus": 1581
+ },
+ "requests": 35018
+}

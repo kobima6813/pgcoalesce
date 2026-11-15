@@ -1,0 +1,27 @@
+WARNING: password file "/dev/null" is not a plain file
+WARNING: password file "/dev/null" is not a plain file
+WARNING: password file "/dev/null" is not a plain file
+WARNING: password file "/dev/null" is not a plain file
+{
+ "cancel": "ok (0.51s)",
+ "cancel_idle_ignored": "ok",
+ "alter_role": "ok",
+ "shutdown": {
+  "idle_client": "ok (closed: terminating connection due to administrator command)",
+  "client_in_tx": "ok (finished its transaction)",
+  "new_connections": "ok (refused)",
+  "exit_code": 0,
+  "secs": 0.57
+ },
+ "client_tls_require": [
+  "ok (plaintext rejected)",
+  "ok (TLS accepted)"
+ ],
+ "metrics": [
+  "pgcoalesce_cancel_requests_total 2",
+  "pgcoalesce_coalesce_ratio 1",
+  "pgcoalesce_window_seconds 0.002",
+  "pgcoalesce_batch_size_count 5",
+  "pgcoalesce_request_seconds_count 5"
+ ]
+}

@@ -1,0 +1,7 @@
+{"label": "volpol_def", "rc": 0, "secs": 1.3, "pgcoalesce_batch_size": {"batches": 0, "gt1": 0}, "pgcoalesce_batch_unique_keys": {"batches": 0, "gt1": 0}, "pgcoalesce_tx_batch_size": {"batches": 7, "gt1": 0}, "stats_batch_items": 0, "stats_batches": 0, "stats_tx_batches": 7, "stats_tx_batch_items": 7, "stats_tx_coalesced": 7, "stats_tx_fallbacks": 39, "stats_verify_mismatch": 0, "stats_client_panics": 0, "stats_engines": 1, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+products rows_ok True tx_coalesced+ 7 begins+ 34 fallbacks+ 0
+audited rows_ok True tx_coalesced+ 0 begins+ 39 fallbacks+ 39
+
+--- stderr tail ---

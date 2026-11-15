@@ -1,0 +1,23 @@
+{
+ "cancel": "ok (0.51s)",
+ "cancel_idle_ignored": "ok",
+ "alter_role": "ok",
+ "shutdown": {
+  "idle_client": "ok (closed: terminating connection due to administrator command)",
+  "client_in_tx": "ok (finished its transaction)",
+  "new_connections": "ok (refused)",
+  "exit_code": 0,
+  "secs": 0.62
+ },
+ "client_tls_require": [
+  "ok (plaintext rejected)",
+  "ok (TLS accepted)"
+ ],
+ "metrics": [
+  "pgcoalesce_cancel_requests_total 2",
+  "pgcoalesce_coalesce_ratio 3.6471189327277886",
+  "pgcoalesce_window_seconds 0.015",
+  "pgcoalesce_batch_size_count 35230",
+  "pgcoalesce_request_seconds_count 128488"
+ ]
+}

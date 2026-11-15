@@ -1,0 +1,27 @@
+{"label": "txiso_force", "rc": 0, "secs": 60.6, "pgcoalesce_batch_size": {"batches": 0, "gt1": 0}, "pgcoalesce_batch_unique_keys": {"batches": 0, "gt1": 0}, "pgcoalesce_tx_batch_size": {"batches": 13943, "gt1": 9855}, "stats_batch_items": 0, "stats_batches": 0, "stats_tx_batches": 13943, "stats_tx_batch_items": 42103, "stats_tx_coalesced": 27233, "stats_tx_fallbacks": 26653, "stats_verify_mismatch": 0, "stats_client_panics": 0, "stats_engines": 9, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+{
+ "examples": null,
+ "mismatches": 0,
+ "per_persona": {
+  "anon": 3090,
+  "userA": 3474,
+  "userA_badkey": 3341,
+  "userA_lateprep": 3168,
+  "userA_otherclaim": 3913,
+  "userA_sessClaims": 3456,
+  "userA_sessHeaders": 3013,
+  "userA_setlocalrole": 3468,
+  "userA_tworeads": 2669,
+  "userB": 3934,
+  "userB_hdrs": 3912,
+  "userB_rw": 3944,
+  "userB_savepoint": 3681,
+  "userB_sessGUC": 4361,
+  "userB_sessStatus": 2996
+ },
+ "requests": 52420
+}
+
+--- stderr tail ---

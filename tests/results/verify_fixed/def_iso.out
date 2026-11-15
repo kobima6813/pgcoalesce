@@ -1,0 +1,42 @@
+{"label": "iso_def", "rc": 0, "secs": 61.1, "pgcoalesce_batch_size": {"batches": 211239, "gt1": 5180}, "pgcoalesce_batch_unique_keys": {"batches": 211239, "gt1": 4051}, "pgcoalesce_tx_batch_size": {"batches": 0, "gt1": 0}, "stats_batch_items": 223000, "stats_batches": 211239, "stats_tx_batches": 0, "stats_tx_batch_items": 0, "stats_tx_coalesced": 0, "stats_tx_fallbacks": 0, "stats_verify_mismatch": 2581, "stats_client_panics": 0, "stats_engines": 16, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+{
+ "ops": 325789,
+ "mismatches": 0,
+ "examples": [],
+ "volatile_calls_expected": 1000,
+ "volatile_calls_seen": 1000,
+ "proxy_delta": {
+  "coalesced_reqs": 223000,
+  "batches": 211239,
+  "unique": 217191,
+  "verifies": 28725,
+  "verify_mismatch": 2581,
+  "forward_groups": 112849,
+  "tmpl_ok": 26,
+  "tmpl_no": 36
+ },
+ "personas": {
+  "O1_opt_tz": 20515,
+  "A0_plain": 71537,
+  "O0_options": 20700,
+  "T_toggle0": 6348,
+  "B0_plain": 18979,
+  "A2_tenant2": 14309,
+  "A2_tenant1": 14460,
+  "B1_tenant2": 16815,
+  "M0_md5": 18062,
+  "A3_setrole_b": 11469,
+  "A8_comment_set": 18145,
+  "A1_searchpath": 18664,
+  "T_toggle1": 6330,
+  "A4_formats": 19429,
+  "A7_fn_tz": 15657,
+  "A6_fn_path": 18508,
+  "A5_temp": 15862
+ },
+ "secs": 60.9
+}
+
+--- stderr tail ---

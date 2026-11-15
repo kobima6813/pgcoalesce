@@ -1,0 +1,37 @@
+{
+ "ops": 142996,
+ "mismatches": 0,
+ "examples": [],
+ "volatile_calls_expected": 1000,
+ "volatile_calls_seen": 1000,
+ "proxy_delta": {
+  "coalesced_reqs": 105092,
+  "batches": 100862,
+  "unique": 103128,
+  "verifies": 21185,
+  "verify_mismatch": 9413,
+  "forward_groups": 43181,
+  "tmpl_ok": 26,
+  "tmpl_no": 36
+ },
+ "personas": {
+  "T_toggle0": 3077,
+  "A2_tenant1": 6744,
+  "A2_tenant2": 6875,
+  "O1_opt_tz": 10104,
+  "B1_tenant2": 8488,
+  "A0_plain": 31244,
+  "M0_md5": 9338,
+  "O0_options": 10112,
+  "B0_plain": 9055,
+  "A3_setrole_b": 3594,
+  "A7_fn_tz": 3292,
+  "T_toggle1": 3061,
+  "A6_fn_path": 8584,
+  "A1_searchpath": 8735,
+  "A8_comment_set": 8502,
+  "A4_formats": 8942,
+  "A5_temp": 3249
+ },
+ "secs": 46.5
+}

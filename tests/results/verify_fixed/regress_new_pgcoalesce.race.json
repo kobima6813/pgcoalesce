@@ -1,0 +1,25 @@
+{
+ "R1_encodings": {
+  "LATIN1": "ok",
+  "SJIS": "ok",
+  "invalid_bytes": "ok"
+ },
+ "R2_backslash_literal": "ok",
+ "R3_engine_churn": {
+  "result": "ok",
+  "wrong_answers": 0,
+  "server_conns_base": 80,
+  "peak_growth": 33,
+  "allowed_growth": 44,
+  "left_after_idle": 4
+ },
+ "R4_close_in_group": {
+  "close_portal_then_execute": "ok",
+  "close_stmt_then_bind": "ok",
+  "close_stmt_then_describe": "ok",
+  "bind_closed_stmt_next_group": "ok",
+  "close_then_reparse_ok": "ok",
+  "proxy_still_running": "ok"
+ },
+ "failed_checks": 0
+}

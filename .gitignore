@@ -1,0 +1,8 @@
+pgcoalesce
+*.key
+*.pem
+*.pw
+secrets/
+userlist.txt
+node_modules/
+*.log

@@ -1,0 +1,12 @@
+{"label": "differr_def", "rc": 0, "secs": 199.1, "pgcoalesce_batch_size": {"batches": 64953, "gt1": 63025}, "pgcoalesce_batch_unique_keys": {"batches": 64953, "gt1": 62580}, "pgcoalesce_tx_batch_size": {"batches": 0, "gt1": 0}, "stats_batch_items": 477398, "stats_batches": 64953, "stats_tx_batches": 0, "stats_tx_batch_items": 0, "stats_tx_coalesced": 0, "stats_tx_fallbacks": 0, "stats_verify_mismatch": 0, "stats_client_panics": 0, "stats_engines": 3, "stats_engine_cap_hits": 0}
+
+--- stdout tail ---
+{
+ "seed": 31,
+ "ops": 477398,
+ "errors_compared": 123109,
+ "mismatches": 0,
+ "examples": []
+}
+
+--- stderr tail ---

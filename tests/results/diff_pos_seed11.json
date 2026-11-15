@@ -1,0 +1,41 @@
+{
+ "seed": 11,
+ "diff": {
+  "ops": 197232,
+  "mismatch": 0,
+  "errors_same": 0,
+  "by_mode": {
+   "asyncpg-binary-named": 43455,
+   "psycopg-simple-literal": 37411,
+   "psycopg-text": 36436,
+   "psycopg-binary": 36485,
+   "psycopg-pipeline": 43445
+  }
+ },
+ "txn": {
+  "ryw_ok": 11197,
+  "ryw_fail": 0,
+  "txn_own_write_ok": 11197,
+  "txn_own_write_fail": 0,
+  "rr_snapshot_ok": 11197,
+  "rr_snapshot_fail": 0,
+  "taint_ok": 2,
+  "taint_fail": 0
+ },
+ "proxy_delta": {
+  "batch_items": 94809,
+  "batches": 69253,
+  "coalesced_reqs": 94809,
+  "fallbacks": 0,
+  "forward_groups": 269555,
+  "forward_queries": 59801,
+  "local_groups": 72855,
+  "singles": 57011,
+  "tmpl_no": 28,
+  "tmpl_ok": 61,
+  "unique": 94745,
+  "avg_batch": 1.37,
+  "multi_key_batches": 12242
+ },
+ "mismatch_examples": []
+}
