@@ -661,6 +661,9 @@ WHERE c.oid = to_regclass(%s) AND a.attname = %s AND NOT a.attisdropped AND a.at
 type result struct {
 	rows [][][]byte
 	err  *pgproto3.ErrorResponse
+	// retry: the shared batch timed out or failed with a timeout-class error. The caller must run this
+	// request individually on the client's own session, exactly as it would run without pgcoalesce.
+	retry bool
 }
 
 type req struct {
@@ -738,6 +741,20 @@ func (e *engine) submit(t *tmpl, pfmt int16, param []byte, rfmts []int16, cancel
 	}
 }
 
+// single runs one request on its own (no batching) on a coalescer connection. Used when a timed-out
+// batch's request cannot be handed to the client's own session.
+func (e *engine) single(t *tmpl, pfmt int16, param []byte, rfmts []int16) result {
+	b := e.batcherFor(t, pfmt, rfmts)
+	u := &uval{null: param == nil, param: param}
+	c := e.getConn()
+	err := b.execSingle(c, u)
+	e.putConn(c)
+	if err != nil {
+		return result{err: &pgproto3.ErrorResponse{Severity: "ERROR", SeverityUnlocalized: "ERROR", Code: "08006", Message: "coalescer backend failure: " + err.Error()}}
+	}
+	return result{rows: u.rows, err: u.err}
+}
+
 // expected number of additional arrivals within the window, from recent arrival rate
 func (b *batcher) expectedLocked(now time.Time) float64 {
 	n := b.ai
@@ -761,7 +778,13 @@ func (b *batcher) scheduleLocked() {
 		return // lane completion will reschedule; backlog grows into bigger batches
 	}
 	now := time.Now()
-	if len(b.pending) >= cfg.MaxBatch || cfg.Window == 0 || b.expectedLocked(now) < cfg.MinExpected {
+	if len(b.pending) >= cfg.MaxBatch || cfg.Window == 0 {
+		b.flushLocked()
+		return
+	}
+	if b.expectedLocked(now) < cfg.MinExpected {
+		// adaptive window: too few concurrent lookups of this shape are expected for waiting to pay off
+		stAdaptiveImmediate.Add(int64(len(b.pending)))
 		b.flushLocked()
 		return
 	}
@@ -846,7 +869,19 @@ func (b *batcher) run(batch []*req) {
 		}
 	} else {
 		var perr *pgproto3.ErrorResponse
+		w := startWatchdog(c)
 		perr, err = b.execBatch(c, us)
+		if w.stop(c) || (err == nil && perr != nil && timeoutClass(perr.Code)) {
+			// shared fate bounded: do not repeat a slow or blocked batch key by key on this connection;
+			// every request runs on its own, so a slow key only delays its own client
+			hBatchExec.observe(time.Since(ts).Seconds())
+			b.e.putConn(c)
+			stBatchRetries.Add(int64(len(batch)))
+			for _, r := range batch {
+				r.done <- result{retry: true}
+			}
+			return
+		}
 		if err == nil && perr != nil {
 			// isolate the failing value(s): run each individually so errors reach only their clients
 			stFallback.Add(1)
@@ -1033,4 +1068,73 @@ func (b *batcher) execBatch(c *bconn, us []*uval) (*pgproto3.ErrorResponse, erro
 		perr = &pgproto3.ErrorResponse{Severity: "ERROR", Code: "XX000", Message: "coalesce routing: " + bad.Error()}
 	}
 	return perr, err
+}
+
+// ---------- per-batch timeout ----------
+
+// cancelGrace bounds how long a canceled batch may keep its connection blocked if the cancel is lost
+// (for example the server is unreachable): the read then fails and the connection is replaced.
+var cancelGrace = 2 * time.Second
+
+// watchdog sends a CancelRequest for the statement running on a coalescer connection once it has run
+// longer than batch_timeout.
+type watchdog struct {
+	mu    sync.Mutex
+	done  bool
+	fired bool
+	fin   chan struct{} // closed when the cancel has been sent (or failed)
+	t     *time.Timer
+}
+
+func startWatchdog(c *bconn) *watchdog {
+	d := cfg.BatchTimeout
+	if d <= 0 {
+		return nil
+	}
+	w := &watchdog{fin: make(chan struct{})}
+	w.t = time.AfterFunc(d, func() {
+		defer close(w.fin)
+		w.mu.Lock()
+		if w.done {
+			w.mu.Unlock()
+			return
+		}
+		w.fired = true
+		w.mu.Unlock()
+		stBatchTimeouts.Add(1)
+		c.conn.SetReadDeadline(time.Now().Add(cancelGrace))
+		sendCancel(c.addr, c.pid, c.secret)
+	})
+	return w
+}
+
+// stop disarms the watchdog and reports whether it fired. A connection whose batch was canceled is
+// retired: a cancel that is still in flight must never reach the next statement sent on it.
+func (w *watchdog) stop(c *bconn) bool {
+	if w == nil {
+		return false
+	}
+	w.mu.Lock()
+	w.done = true
+	fired := w.fired
+	w.mu.Unlock()
+	w.t.Stop()
+	if fired {
+		<-w.fin // sendCancel is bounded by its own deadlines
+		c.broken = true
+	}
+	return fired
+}
+
+// timeoutClass: errors that mean "this statement took too long or waited on a lock", not "this key is
+// bad". Re-running such a batch key by key on one connection would repeat the wait serially.
+func timeoutClass(code string) bool {
+	switch code {
+	case "57014", // query_canceled (statement_timeout or a cancel)
+		"55P03", // lock_not_available (lock_timeout)
+		"40P01", // deadlock_detected
+		"25P04": // transaction_timeout
+		return true
+	}
+	return false
 }

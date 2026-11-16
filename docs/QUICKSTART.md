@@ -29,16 +29,17 @@ Copy `pgcoalesce.example.ini` and set `server_addr` (coalesced batches) and `ups
 ## 4. Run and point your app at it
 ```bash
 ./pgcoalesce -config pgcoalesce.ini
-# override any key: -set window=5ms -set min_expected=1
+# override any key: -set window=5ms -set min_expected=1 -set batch_timeout=250ms
 psql "postgres://app@localhost:6432/app?sslmode=require"
 ```
 
 ## 5. Watch it
 ```bash
-curl -s localhost:9187/metrics | grep -E 'pgcoalesce_(coalesced|batch|tx_|verify)'
+curl -s localhost:9187/metrics | grep -E 'pgcoalesce_(coalesced|batch|adaptive|tx_|verify)'
 curl -s localhost:9187/stats        # JSON
 kill -HUP <pid>                     # reload templates/engines (also POST /admin/reload)
 kill -TERM <pid>                    # graceful: idle clients get 57P01, open transactions may finish
 ```
-Healthy signs: `coalesced_reqs` grows with load, `verify_mismatch` stays near 0, `tx_bypass` is high for
+Healthy signs: `coalesced_reqs` grows with load, `verify_mismatch` stays near 0, `batch_timeouts` stays at 0
+(a rising count means batches are hitting slow plans or locks; their requests were re-run individually), `tx_bypass` is high for
 per-user PostgREST traffic (expected — see Limits).

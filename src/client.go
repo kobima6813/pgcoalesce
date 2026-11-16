@@ -585,6 +585,11 @@ func (c *client) handleQuery(q string) bool {
 				rf := make([]int16, len(t.fields))
 				c.drainCancel()
 				res := c.eng.submit(t, 0, []byte(sp.litText), rf, c.cancelCh)
+				if res.retry {
+					// the shared batch timed out: run this query on the client's own session
+					stForwardQueries.Add(1)
+					return c.forward(nil, &pgproto3.Query{String: q})
+				}
 				c.wmu.Lock()
 				if res.err != nil {
 					c.send(res.err)
@@ -752,9 +757,74 @@ func (c *client) localEligible(group []pgproto3.FrontendMessage) bool {
 	return true
 }
 
+// localUndo records what runLocal changed, so a group can be handed to the client's own session
+// unchanged when a shared batch times out (nothing has been sent to the client at that point).
+type localUndo struct {
+	stmt    bool // false: portal
+	name    string
+	old     any // *stmt or *portal; nil if absent
+	existed bool
+}
+
+func (c *client) undoLocal(log []localUndo, nClose int) {
+	c.mu.Lock()
+	for i := len(log) - 1; i >= 0; i-- {
+		u := log[i]
+		if u.stmt {
+			if u.existed {
+				c.stmts[u.name] = u.old.(*stmt)
+			} else {
+				delete(c.stmts, u.name)
+			}
+		} else {
+			if u.existed {
+				c.portals[u.name] = u.old.(*portal)
+			} else {
+				delete(c.portals, u.name)
+			}
+		}
+	}
+	c.pendingClose = c.pendingClose[:nClose]
+	c.mu.Unlock()
+}
+
+// selfContained: every portal the group describes or executes is bound inside the group itself.
+func selfContained(group []pgproto3.FrontendMessage) bool {
+	bound := map[string]bool{}
+	for _, m := range group {
+		switch x := m.(type) {
+		case *pgproto3.Bind:
+			bound[x.DestinationPortal] = true
+		case *pgproto3.Describe:
+			if x.ObjectType != 'S' && !bound[x.Name] {
+				return false
+			}
+		case *pgproto3.Execute:
+			if !bound[x.Portal] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 	stLocalGroups.Add(1)
 	var out []pgproto3.BackendMessage
+	var undo []localUndo
+	c.mu.Lock()
+	nClose := len(c.pendingClose)
+	c.mu.Unlock()
+	saveStmt := func(n string) {
+		c.mu.Lock()
+		s, ok := c.stmts[n]
+		c.mu.Unlock()
+		undo = append(undo, localUndo{stmt: true, name: n, old: s, existed: ok})
+	}
+	savePortal := func(n string) {
+		p, ok := c.portals[n]
+		undo = append(undo, localUndo{name: n, old: p, existed: ok})
+	}
 	errored := false
 	for _, m := range group {
 		if errored {
@@ -763,6 +833,7 @@ func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 		switch x := m.(type) {
 		case *pgproto3.Parse:
 			t := c.eng.classify(x.Query, x.ParameterOIDs)
+			saveStmt(x.Name)
 			c.mu.Lock()
 			c.stmts[x.Name] = &stmt{query: x.Query, oids: x.ParameterOIDs, t: t}
 			c.mu.Unlock()
@@ -778,6 +849,7 @@ func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 			if len(x.ParameterFormatCodes) == 1 {
 				pf = x.ParameterFormatCodes[0]
 			}
+			savePortal(x.DestinationPortal)
 			c.portals[x.DestinationPortal] = &portal{st: s, pfmt: pf, param: x.Parameters[0], rfmts: normFormats(x.ResultFormatCodes, len(s.t.fields))}
 			out = append(out, &pgproto3.BindComplete{})
 		case *pgproto3.Describe:
@@ -803,6 +875,17 @@ func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 			}
 			c.drainCancel()
 			res := c.eng.submit(p.st.t, p.pfmt, p.param, p.rfmts, c.cancelCh)
+			if res.retry {
+				// the shared batch timed out: nothing of this group has reached the client yet, so
+				// restore the local state and send the whole group to the client's own session
+				if selfContained(group) {
+					c.undoLocal(undo, nClose)
+					return c.forward(group, nil, sync)
+				}
+				// the portal was bound in an earlier, unsynced local group and does not exist upstream:
+				// run just this request on its own on a coalescer connection
+				res = c.eng.single(p.st.t, p.pfmt, p.param, p.rfmts)
+			}
 			if res.err != nil {
 				out = append(out, res.err)
 				errored = true
@@ -814,6 +897,7 @@ func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 			out = append(out, &pgproto3.CommandComplete{CommandTag: []byte(fmt.Sprintf("SELECT %d", len(res.rows)))})
 		case *pgproto3.Close:
 			if x.ObjectType == 'S' {
+				saveStmt(x.Name)
 				c.mu.Lock()
 				if s := c.stmts[x.Name]; s != nil {
 					if s.onBackend && x.Name != "" {
@@ -823,6 +907,7 @@ func (c *client) runLocal(group []pgproto3.FrontendMessage, sync bool) bool {
 				}
 				c.mu.Unlock()
 			} else {
+				savePortal(x.Name)
 				delete(c.portals, x.Name)
 			}
 			out = append(out, &pgproto3.CloseComplete{})

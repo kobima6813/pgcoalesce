@@ -35,6 +35,7 @@ type Config struct {
 	Window         time.Duration
 	MinExpected    float64
 	MaxBatch       int
+	BatchTimeout   time.Duration // cancel a merged batch running longer than this and re-run its requests individually; 0 = off
 	PosMax         int
 	ServerLifetime time.Duration
 	TemplateTTL    time.Duration
@@ -51,7 +52,7 @@ var cfg = Config{
 	ServerTLSMode: "prefer", ClientTLSMode: "disable",
 	AuthType: "scram-sha-256", AuthDB: "postgres",
 	AuthQuery: "SELECT usename, passwd FROM pg_catalog.pg_shadow WHERE usename = $1",
-	Coalesce:  true, TxCoalesce: true, Lanes: 4, Window: 2 * time.Millisecond, MinExpected: 1.0, MaxBatch: 1000, PosMax: 64,
+	Coalesce:  true, TxCoalesce: true, Lanes: 4, Window: 2 * time.Millisecond, MinExpected: 1.0, MaxBatch: 1000, PosMax: 64, BatchTimeout: 500 * time.Millisecond,
 	ServerLifetime: time.Hour, TemplateTTL: 5 * time.Minute, ShutdownTimeout: 30 * time.Second,
 	MaxEngines: 32, EngineIdle: time.Minute,
 	MetricsAddr: "127.0.0.1:9930",
@@ -145,6 +146,11 @@ func setKey(k, v string) error {
 		cfg.MinExpected, err = strconv.ParseFloat(v, 64)
 	case "max_batch":
 		cfg.MaxBatch, err = strconv.Atoi(v)
+	case "batch_timeout":
+		cfg.BatchTimeout, err = parseDur(v)
+		if err == nil && cfg.BatchTimeout < 0 {
+			err = fmt.Errorf("batch_timeout must be >= 0")
+		}
 	case "pos_max":
 		cfg.PosMax, err = strconv.Atoi(v)
 	case "server_lifetime":

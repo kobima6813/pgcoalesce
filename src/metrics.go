@@ -42,8 +42,8 @@ func (h *hist) write(w io.Writer) {
 }
 
 var (
-	stCoalescedReqs, stBatches, stBatchItems, stUnique, stSingles, stFallback, stForwardGroups, stForwardQueries, stLocalGroups, stTmplOK, stTmplNo, stQueueMax                                                                                                                                                                                             atomic.Int64
-	stClients, stClientsTotal, stAuthFail, stCancels, stCancelLocal, stTaints, stServerDials, stRotations, stShutdownKicks, stVerifies, stVerifyMismatch, stTxBegins, stTxCommits, stTxCoalesced, stTxFallbacks, stTxBatches, stTxBatchItems, stEngineSwitches, stTxWatchMismatch, stTxBypass, stEngineCapHits, stEngineIdleClosed, stPanics, stEnginesLive atomic.Int64
+	stCoalescedReqs, stBatches, stBatchItems, stUnique, stSingles, stFallback, stForwardGroups, stForwardQueries, stLocalGroups, stTmplOK, stTmplNo, stQueueMax                                                                                                                                                                                                                                                   atomic.Int64
+	stClients, stClientsTotal, stAuthFail, stCancels, stCancelLocal, stTaints, stServerDials, stRotations, stShutdownKicks, stVerifies, stVerifyMismatch, stTxBegins, stTxCommits, stTxCoalesced, stTxFallbacks, stTxBatches, stTxBatchItems, stEngineSwitches, stTxWatchMismatch, stTxBypass, stEngineCapHits, stEngineIdleClosed, stPanics, stEnginesLive, stBatchTimeouts, stBatchRetries, stAdaptiveImmediate atomic.Int64
 
 	hBatchSize   = newHist("pgcoalesce_batch_size", "Requests per executed batch.", []float64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024})
 	hBatchKeys   = newHist("pgcoalesce_batch_unique_keys", "Distinct keys per executed batch.", []float64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024})
@@ -66,6 +66,9 @@ func writeMetrics(w io.Writer) {
 	c("pgcoalesce_batches_total", "Batches sent to Postgres (one statement each).", batches)
 	c("pgcoalesce_batch_keys_total", "Distinct keys sent in batches.", stUnique.Load())
 	c("pgcoalesce_batch_fallbacks_total", "Batches that failed and were re-run per key to isolate errors.", stFallback.Load())
+	c("pgcoalesce_batch_timeouts_total", "Batches canceled after batch_timeout (their requests were re-run individually).", stBatchTimeouts.Load())
+	c("pgcoalesce_batch_retried_requests_total", "Requests of a timed-out or timeout-class failed batch re-run individually on the client's own session.", stBatchRetries.Load())
+	c("pgcoalesce_adaptive_immediate_total", "Requests dispatched without waiting because fewer than min_expected partners were expected within the window.", stAdaptiveImmediate.Load())
 	c("pgcoalesce_forwarded_groups_total", "Client message groups forwarded unchanged to the upstream session.", stForwardGroups.Load())
 	c("pgcoalesce_templates_total{result=\"coalescible\"}", "Distinct statements classified.", stTmplOK.Load())
 	fmt.Fprintf(w, "pgcoalesce_templates_total{result=\"rejected\"} %d\n", stTmplNo.Load())
@@ -101,7 +104,7 @@ func writeMetrics(w io.Writer) {
 
 func statsMap() map[string]int64 {
 	return map[string]int64{"coalesced_reqs": stCoalescedReqs.Load(), "batches": stBatches.Load(), "batch_items": stBatchItems.Load(), "unique": stUnique.Load(),
-		"singles": stSingles.Load(), "fallbacks": stFallback.Load(), "forward_groups": stForwardGroups.Load(), "forward_queries": stForwardQueries.Load(),
+		"singles": stSingles.Load(), "fallbacks": stFallback.Load(), "batch_timeouts": stBatchTimeouts.Load(), "batch_retries": stBatchRetries.Load(), "adaptive_immediate": stAdaptiveImmediate.Load(), "forward_groups": stForwardGroups.Load(), "forward_queries": stForwardQueries.Load(),
 		"local_groups": stLocalGroups.Load(), "tmpl_ok": stTmplOK.Load(), "tmpl_no": stTmplNo.Load(), "queue_max": stQueueMax.Load(),
 		"clients": stClients.Load(), "auth_fail": stAuthFail.Load(), "cancels": stCancels.Load(), "cancel_local": stCancelLocal.Load(), "taints": stTaints.Load(),
 		"server_dials": stServerDials.Load(), "rotations": stRotations.Load(), "verifies": stVerifies.Load(), "verify_mismatch": stVerifyMismatch.Load(), "tx_begins": stTxBegins.Load(), "tx_commits": stTxCommits.Load(), "tx_coalesced": stTxCoalesced.Load(), "tx_fallbacks": stTxFallbacks.Load(), "tx_batches": stTxBatches.Load(), "tx_batch_items": stTxBatchItems.Load(), "engine_switches": stEngineSwitches.Load(), "tx_watch_mismatch": stTxWatchMismatch.Load(), "tx_bypass": stTxBypass.Load(),

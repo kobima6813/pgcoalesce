@@ -574,6 +574,7 @@ func sendCancel(addr string, pid uint32, secret []byte) {
 		return
 	}
 	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(5 * time.Second)) // never hang on an unresponsive server
 	c, err := serverTLS(conn, addr)
 	if err != nil {
 		return

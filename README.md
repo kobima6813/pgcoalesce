@@ -63,6 +63,23 @@ The test used real PostgREST 16.5, an RLS-protected `profiles` table, `GET /x?id
 - Cold fingerprints are detected and passed straight through, so you don't pay for a shared transaction of one.
 - We do **not** normalise claims such as `iat` or `exp`. Policies and functions can read any claim, so merging them is not provably safe.
 
+## Bounding the cost of batching
+Two settings limit what a client can lose by sharing a batch with others.
+
+**Adaptive window (`min_expected`, default 1).** For each query shape the proxy estimates the arrival rate from the last 32 lookups. A lookup is held only if at least `min_expected` more lookups of that shape are expected within `window`. Otherwise it is sent at once, so quiet periods pay no added latency. `min_expected = 0` always holds for the full window. Immediate dispatches are counted in `pgcoalesce_adaptive_immediate_total`.
+
+Measured on the benchmark box on 16 Nov 2026 (100 uniform reads/s, named prepared, 2 ms window, 3 runs of 6 s, medians):
+
+| | p50 | p99 |
+|---|---|---|
+| PgBouncer (pool 4) | 1.50 ms | 2.82 ms |
+| pgcoalesce, fixed window (`min_expected=0`) | 3.55 ms | 5.61 ms |
+| pgcoalesce, adaptive window (default) | 1.22 ms | 2.24 ms |
+
+**Per-batch timeout (`batch_timeout`, default 500 ms, 0 = off).** Every client in a batch shares its fate: one slow plan, lock wait or `statement_timeout` would hit all of them. When a batch of two or more keys runs longer than `batch_timeout`, the proxy sends a CancelRequest for it, retires that server connection (so a late cancel can never reach another statement), and re-runs each request on its own client session, exactly as it would run without pgcoalesce. A slow or blocked key then delays only its own client. Batches that fail with `statement_timeout`, `lock_timeout`, a deadlock or `transaction_timeout` are re-run the same way instead of key by key on the shared connection. Other batch errors are still isolated by re-running each key on the coalescer connection, so an error reaches only the client whose key caused it. Shared transactions (`tx_coalesce`) are bounded by the same timeout and replay on each client's own session. Watch `pgcoalesce_batch_timeouts_total` and `pgcoalesce_batch_retried_requests_total`.
+
+At 5,000 reads/s neither change cost DB CPU savings. Same box, same session, medians of 3 runs, DB CPU per request against PgBouncer (pool 4): named prepared, uniform keys 19.1 vs 68.5 µs (−72%), Zipf 11.9 vs 54.4 µs (−78%); unnamed (`exec`) uniform 17.2 vs 91.1 µs (−81%), Zipf 12.1 vs 84.2 µs (−86%). The previous release measured 18.7 / 11.9 / 17.4 / 12.3 µs in the same runs. 0 wrong rows, 0 errors. No batch hit the timeout in these runs.
+
 ## Safety model: fail closed
 A read is coalesced only when every check passes. Anything unrecognised is relayed unchanged.
 
@@ -108,6 +125,8 @@ A pre-launch code review then found four more, all fixed and covered by `tests/r
 - Every distinct session configuration kept its server connections forever. Engines are now limited (`max_engines`) and closed when idle (`engine_idle_timeout`).
 - A simple-protocol string literal containing a backslash was read as if `standard_conforming_strings` were on. Such literals are now passed through.
 
+**Batch timeout (16 Nov 2026).** Go unit tests (`go test -race ./...`) cover the cancel path against a fake server (cancel delivered, lost cancel, fast batches untouched, server-side `statement_timeout`, per-key error isolation, shared transactions). `tests/batch_timeout_test.py` checks it live: with an ACCESS EXCLUSIVE lock held on the table for 1.2 s, 60 concurrent clients (extended and simple protocol) all got exactly their own row, 2 batches were canceled and 22 requests re-run individually; 2,000 lookups afterwards ran with no timeouts and 0 mismatches. The suites above were re-run on this code with the race detector (40 s each, default and forced batching): 0 mismatches in all of them.
+
 ### Residual risks (read before deploying)
 - **C-language functions that read custom GUCs.** These are invisible to the GUC watch-list scan, which only reads SQL/PL source and policies. If an RLS policy or view on a transaction-coalesced table relies on one, disable `tx_coalesce`.
 - **STABLE functions that call volatile ones.** Postgres allows this; it is not checked recursively.
@@ -119,12 +138,13 @@ A pre-launch code review then found four more, all fixed and covered by `tests/r
 - **Metrics endpoint is unauthenticated.** `/metrics`, `/stats` and `POST /admin/reload` have no authentication. Bind `metrics_addr` to loopback or a private interface.
 - **Server-side TLS default.** `server_tls_sslmode` defaults to `prefer`, which does not verify the server certificate. Use `verify-full` for anything that is not on localhost.
 - **Schema changes.** Query templates are cached for `template_ttl` (5 minutes by default). Behaviour right after a schema change on a coalesced table (for example `ADD COLUMN` under `SELECT *`) has not been tested.
+- **Batch timeouts under overload.** When a batch times out, its requests run individually, which costs the database more than the batch would have. If batches routinely exceed `batch_timeout` because the database is saturated, the retries add load. Size `batch_timeout` well above your normal batch round trip (`pgcoalesce_batch_exec_seconds`).
 - **Limited testing.** One machine, synthetic schemas, and no third-party security review. Treat it as beta.
 
 ## Production features
 - **Client side:** SCRAM-SHA-256 and md5 auth, using a PgBouncer-format `auth_file` or `auth_query` through a `SECURITY DEFINER` function. TLS (`allow`/`require`).
 - **Server side:** TLS `disable` through `verify-full`, plus SCRAM and md5.
-- **CancelRequest:** forwarded with per-client keys; a pending coalesced request is answered with 57014.
+- **CancelRequest:** forwarded with per-client keys; a pending coalesced request is answered with 57014. A batch running past `batch_timeout` is canceled on the server and its requests re-run individually.
 - **Shutdown:** graceful on SIGTERM. Idle clients get 57P01, open transactions finish, and a hard timeout applies. SIGHUP or `POST /admin/reload` reloads.
 - **Observability:** Prometheus `/metrics` with coalesce ratio, batch-size and window histograms, latency, `tx_*` counters and verification counters. `/stats` gives JSON; pprof is optional.
 - **Config:** one INI file, with `-set key=value` overrides. See [docs/QUICKSTART.md](docs/QUICKSTART.md) and `pgcoalesce.example.ini`.

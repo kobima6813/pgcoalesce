@@ -876,7 +876,16 @@ func (b *txBatcher) run(batch []*txReq) {
 	hTxBatchSize.observe(float64(len(batch)))
 	c := b.e.getConn()
 	ts := time.Now()
+	var w *watchdog
+	if len(batch) > 1 {
+		w = startWatchdog(c)
+	}
 	err := b.exec(c, us)
+	if w.stop(c) {
+		// shared transaction canceled after batch_timeout: every client replays on its own session
+		err = errTxFallback
+		stBatchRetries.Add(int64(len(batch)))
+	}
 	hBatchExec.observe(time.Since(ts).Seconds())
 	b.e.putConn(c)
 	for _, r := range batch {
